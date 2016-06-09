@@ -1,2 +1,2 @@
 # convert-old-geoscope
-Convert Old GEOSCOPE encoded data to STEIM2
+Convert GEOSCOPE encoded miniseed files to STEIM2 and modify dataless

@@ -10,7 +10,7 @@ import copy
 import sys
 
 # Load Dataless to modify, assume only one station
-p = Parser("dataless.G.SSB.seed")
+p = Parser("./test/dataless.G.SSB.seed")
 
 # Get Data Format Identifier Codes
 lookup_steim2 = -1
@@ -200,4 +200,4 @@ if lookup_geoscope_4bit != -1:
 # Write new dataless
 print ""
 print "---- Write new dataless ----"
-p.write_seed("modif.dataless.G.SSB.seed")
+p.write_seed("./test/modif.dataless.G.SSB.seed")

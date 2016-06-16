@@ -10,7 +10,7 @@ import copy
 import sys
 
 # Load Dataless to modify, assume only one station
-p = Parser("./test/dataless.G.SSB.seed")
+p = Parser("./test/dataless.G.AGD.seed")
 
 # Get Data Format Identifier Codes
 lookup_steim2 = -1
@@ -36,7 +36,7 @@ while i < len(p.abbreviations):
 print "---- Create Steim2 Data Format blockette if it does not exist ----"
 if lookup_steim2 == -1:
     # Get a blockette 30 with Steim2 encoding
-    psteim2 = Parser("dataless.G.CLF.seed")
+    psteim2 = Parser("./test/dataless.G.CLF.seed")
     # Copy it on current dataless
     p.abbreviations.insert(0, psteim2.abbreviations[0])
     # Update data_format_identifier_code
@@ -200,4 +200,4 @@ if lookup_geoscope_4bit != -1:
 # Write new dataless
 print ""
 print "---- Write new dataless ----"
-p.write_seed("./test/modif.dataless.G.SSB.seed")
+p.write_seed("./test/modif.dataless.G.AGD.seed")

@@ -5,15 +5,14 @@ Created on Fri May 13 14:56:35 2016
 @author: leroy
 """
 
-from obspy import UTCDateTime
 from obspy.io.xseed import Parser
 import copy
 import sys
 
 # Load Dataless to modify, assume only one station
-p = Parser("dataless.G.CAY.seed")
+p = Parser("dataless.G.SSB.seed")
 
-# Get Encoding format
+# Get Data Format Identifier Code
 if p.abbreviations[0].blockette_type == 30:
     if p.abbreviations[0].data_family_type == 1:
         # Test if encoding is Geoscope 3 bits
@@ -28,11 +27,34 @@ if p.abbreviations[0].blockette_type == 30:
             # Print warning and exit
             print("No Geoscope encoding")
             sys.exit()
-                
-        
+
+    
+# Clone current station
+#p.stations.insert(0,copy.deepcopy(p.stations[0]))
 
 # Get Station = first station
 blksta = p.stations[0]
+
+sys.exit()
+
+# Remove Comment Blockettes
+i=1
+while i < len(blksta):
+    if blksta[i].blockette_type == 51:
+        blksta.pop(i)
+    i+=1
+    
+
+
+
+## Change Location code
+#i=1
+#while i < len(blksta):
+#    # Test if blockette is a channel blockette (52)
+#    if blksta[i].blockette_type == 52:
+#        blksta[i].location_identifier = '00'
+#    i+=1
+        
 
 # Iterate to find all stages 0 and insert a new blockette 58 with gain
 # before + update gain on stage 0
@@ -69,5 +91,5 @@ p.abbreviations[0] = psteim2.abbreviations[0]
 
         
 # Write Dataless    
-p.write_seed("CAY.dataless.modif")
+p.write_seed("SSB.dataless.modif")
 

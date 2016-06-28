@@ -22,20 +22,29 @@ def modify(filename) :
     lookup_geoscope_3bit = -1
     lookup_geoscope_4bit = -1
     i=0
+    format_lookup_list = []
     print "---- Get data format identifier codes ----"
     while i < len(p.abbreviations):
         if p.abbreviations[i].blockette_type == 30:
+            # Increment number of format          
             # Get Data Format Identifier Code for Steim2
             if p.abbreviations[i].short_descriptive_name.rfind("2") != -1:
                 lookup_steim2 = p.abbreviations[i].data_format_identifier_code
+                print "lookup_steim2 = ", lookup_steim2
+                format_lookup_list.append(lookup_steim2)
             # Get Data Format Identifier Code for Geoscope 3 bits
             if p.abbreviations[i].short_descriptive_name.rfind("3") != -1:
                 lookup_geoscope_3bit = p.abbreviations[i].data_format_identifier_code
+                print "lookup_3bit = ", lookup_geoscope_3bit
+                format_lookup_list.append(lookup_geoscope_3bit)
             # Get Data Format Identifier Code for Geoscope 4 bits
             if p.abbreviations[i].short_descriptive_name.rfind("4") != -1:
                 lookup_geoscope_4bit = p.abbreviations[i].data_format_identifier_code
+                print "lookup_4bit = ", lookup_geoscope_4bit
+                format_lookup_list.append(lookup_geoscope_4bit)
         i+=1
                     
+    print format_lookup_list
     
     # Create Steim2 Data Format blockette if it does not exist
     print "---- Create Steim2 Data Format blockette if it does not exist ----"
@@ -44,10 +53,13 @@ def modify(filename) :
         psteim2 = Parser("./test/dataless.G.CLF.seed")
         # Copy it on current dataless
         p.abbreviations.insert(0, psteim2.abbreviations[0])
-        # Update data_format_identifier_code
-        # TODO
-        #p.abbreviations[0].data_format_identifier_code = ?????
-        #lookup_steim2 = ?????
+        # create new lookup code (make sure it is not already used otherwise increment)
+        lookup_steim2 = 1
+        while lookup_steim2 in format_lookup_list :
+            lookup_steim2 += 1     
+        print lookup_steim2
+        # Set new lookup code
+        p.abbreviations[0].data_format_identifier_code = lookup_steim2
         
     
     # Get Station = first station
@@ -150,6 +162,8 @@ def modify(filename) :
                     # Clone blockette 52
                     blksta.insert(i, copy.deepcopy(blksta[i]))
                     blksta[i].location_identifier = "00"
+                    print lookup_steim2, lookup_geoscope_4bit
+                    blksta[i].data_format_identifier_code = lookup_steim2
                     i += 1
                     clone = i
                 else:
@@ -213,10 +227,12 @@ def modify(filename) :
 
 ################################################
 
-directory = os.listdir("./dataless")
+#directory = os.listdir("./dataless")
 
-for file in directory :   
-    if "dataless" in file:
-        print file        
-        modify(file)
+#for file in directory :   
+#    if "dataless" in file:
+#        print file        
+#        modify(file)
 
+file = "dataless.G.BNG.seed"
+modify(file)

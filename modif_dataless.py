@@ -8,6 +8,7 @@ Created on Fri May 13 14:56:35 2016
 from obspy.io.xseed import Parser
 import copy
 import sys
+import os
 
 
 def modify(filename) :

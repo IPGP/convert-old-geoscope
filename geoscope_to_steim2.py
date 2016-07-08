@@ -123,13 +123,14 @@ class geoscope_to_steim2(object):
 
             logger.warning('dataless file is: ' + dataless_file_name)
             dataless_parser = Parser(dataless_file_name)
-
-            paz_ori = dataless_parser.get_paz(st_ori[0].get_id())
+            
+            #embed()
+            paz_ori = dataless_parser.get_paz(st_ori[0].get_id(),datetime=st_ori[0].stats.starttime)
             #print "paz_ori = ", paz_ori
             paz_1hz_ori = corn_freq_2_paz(1.0, damp=0.707)
             st_ori.simulate(paz_remove=paz_ori, paz_simulate=paz_1hz_ori)
 
-            paz_modif = dataless_parser.get_paz(st_modif[0].get_id())
+            paz_modif = dataless_parser.get_paz(st_modif[0].get_id(),datetime=st_modif[0].stats.starttime)
             #print "paz_modif = ", paz_modif
             paz_1hz_modif = corn_freq_2_paz(1.0, damp=0.707)
             st_modif.simulate(paz_remove=paz_modif, paz_simulate=paz_1hz_modif)

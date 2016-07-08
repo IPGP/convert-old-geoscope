@@ -52,6 +52,7 @@ class geoscope_to_steim2(object):
         for input_file in self.file_list:
             stream_local = read(input_file, details=True)
             for trace_local in stream_local:
+                converted=False
                 print "#################################################################"
                 print trace_local
                 if u'GEOSCOPE16_' not in trace_local.stats.mseed.encoding:
@@ -60,23 +61,27 @@ class geoscope_to_steim2(object):
                 elif trace_local.stats.mseed.encoding == u'GEOSCOPE16_3':
                     print "GEOSCOPE16_3 coding detected for this trace"
                     trace_local.data = trace_local.data * 2**7
+                    converted = True
                 elif trace_local.stats.mseed.encoding == u'GEOSCOPE16_4':
                     print "GEOSCOPE16_4 coding detected for this trace"
                     trace_local.data = trace_local.data * 2**15
+                    converted = True
 
-                # float to int
-                tmp = trace_local.data.copy()
-                trace_local.data = np.array(trace_local.data).astype(np.int32)
-                dif_int_float = trace_local.data - tmp
-                print "Maximum difference after float to int conversion: " + str(max(dif_int_float))
+                if converted:
+                    # float to int
+                    tmp = trace_local.data.copy()
+                    trace_local.data = np.array(trace_local.data).astype(np.int32)
+                    dif_int_float = trace_local.data - tmp
+                    
+                    print "Maximum difference after float to int conversion: " + str(max(dif_int_float))
 
-                # Compression format modification
-                trace_local.stats.mseed.encoding = u'STEIM2'
-                # on rajoute le location code
-                trace_local.stats.location = u'00'
-                print "Conversion ok"
+                    # Compression format modification
+                    trace_local.stats.mseed.encoding = u'STEIM2'
+                    # on rajoute le location code
+                    trace_local.stats.location = u'00'
+                    print "Conversion ok"
 
-                print trace_local
+                    print trace_local
                 
 
            # G.AGD.00.MHZ.1987.123
@@ -114,8 +119,6 @@ class geoscope_to_steim2(object):
 
             logger.warn(new_file_name)
             
-            print new_file_name
-
             st_modif = read(new_file_name, details=True)
             dataless_file_name = self.dataless_dir+'/dataless.' + \
                 st_ori[0].stats.network + '.' + \
@@ -124,7 +127,6 @@ class geoscope_to_steim2(object):
             logger.warning('dataless file is: ' + dataless_file_name)
             dataless_parser = Parser(dataless_file_name)
             
-            #embed()
             paz_ori = dataless_parser.get_paz(st_ori[0].get_id(),datetime=st_ori[0].stats.starttime)
             #print "paz_ori = ", paz_ori
             paz_1hz_ori = corn_freq_2_paz(1.0, damp=0.707)
@@ -138,8 +140,7 @@ class geoscope_to_steim2(object):
             tr_orig = st_ori[0]
             tr_modif = st_modif[0]
             dif = tr_modif.data - tr_orig.data
-            print "Maximum difference between original geoscope encoding data \
-            and convert steim2 data after deconvolution: " + str(max(dif))
+            print "For "+str(st_modif[0].get_id())+" Maximum difference between original geoscope encoding data and convert steim2 data after deconvolution: " + str(max(dif))
             
             
 

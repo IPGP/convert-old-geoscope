@@ -219,7 +219,7 @@ def modify(filename) :
     # Write new dataless
     print ""
     print "---- Write new dataless ----"
-    p.write_seed("./modified/"+filename+".modified")
+    p.write_seed("./modified/"+filename)
 
 
 
@@ -227,12 +227,12 @@ def modify(filename) :
 
 ################################################
 
-#directory = os.listdir("./dataless")
+directory = os.listdir("./dataless")
 
-#for file in directory :   
-#    if "dataless" in file:
-#        print file        
-#        modify(file)
+for file in directory :   
+    if "dataless" in file:
+        print file        
+        modify(file)
 
-file = "dataless.G.BNG.seed"
-modify(file)
+#file = "dataless.G.BNG.seed"
+#modify(file)

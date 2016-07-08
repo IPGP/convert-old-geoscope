@@ -7,6 +7,7 @@ import os
 import logging
 import logging.handlers
 import numpy as np
+from IPython import embed
 from obspy import read
 from obspy.io.xseed import Parser
 from obspy.signal.invsim import corn_freq_2_paz
@@ -75,23 +76,28 @@ class geoscope_to_steim2(object):
                 trace_local.stats.location = u'00'
                 print "Conversion ok"
 
-               # G.AGD.00.MHZ.1987.123
-                new_file_name = str(self.output_dir) + stream_local[0].get_id()\
-                    + '.' + \
-                    stream_local[0].stats.starttime.format_seed(
-                        compact=True).replace(',', '.')[0:8]
+                print trace_local
+                
 
-                # AGD.G.00.MHZ.1987.123
-                new_file_name = str(self.output_dir) + \
-                    stream_local[0].stats.station + '.' +\
-                    stream_local[0].stats.network + '.00.' + \
-                    stream_local[0].stats.channel + '.' +\
-                    stream_local[0].stats.starttime.format_seed(
-                        compact=True).replace(',', '.')[0:8]
+           # G.AGD.00.MHZ.1987.123
+            new_file_name = str(self.output_dir) + stream_local[0].get_id()\
+                + '.' + \
+                stream_local[0].stats.starttime.format_seed(
+                    compact=True).replace(',', '.')[0:8]
+
+            # AGD.G.00.MHZ.1987.123
+            new_file_name = str(self.output_dir) + \
+                stream_local[0].stats.station + '.' +\
+                stream_local[0].stats.network + '.00.' + \
+                stream_local[0].stats.channel + '.' +\
+                stream_local[0].stats.starttime.format_seed(
+                    compact=True).replace(',', '.')[0:8]
 
             logger.warn("le fichier sera sauvegarde ici: " + new_file_name)
             stream_local.write(
                 new_file_name, format="MSEED", encoding="STEIM2")
+            print new_file_name
+            print stream_local
 
     def verification(self):
 
@@ -107,9 +113,11 @@ class geoscope_to_steim2(object):
                 0].stats.starttime.format_seed(compact=True).replace(',', '.')[0:8]
 
             logger.warn(new_file_name)
+            
+            print new_file_name
 
             st_modif = read(new_file_name, details=True)
-            dataless_file_name = 'dataless.' + \
+            dataless_file_name = self.dataless_dir+'/dataless.' + \
                 st_ori[0].stats.network + '.' + \
                 st_ori[0].stats.station + '.seed'
 
@@ -117,10 +125,12 @@ class geoscope_to_steim2(object):
             dataless_parser = Parser(dataless_file_name)
 
             paz_ori = dataless_parser.get_paz(st_ori[0].get_id())
+            #print "paz_ori = ", paz_ori
             paz_1hz_ori = corn_freq_2_paz(1.0, damp=0.707)
             st_ori.simulate(paz_remove=paz_ori, paz_simulate=paz_1hz_ori)
 
             paz_modif = dataless_parser.get_paz(st_modif[0].get_id())
+            #print "paz_modif = ", paz_modif
             paz_1hz_modif = corn_freq_2_paz(1.0, damp=0.707)
             st_modif.simulate(paz_remove=paz_modif, paz_simulate=paz_1hz_modif)
 
@@ -129,6 +139,8 @@ class geoscope_to_steim2(object):
             dif = tr_modif.data - tr_orig.data
             print "Maximum difference between original geoscope encoding data \
             and convert steim2 data after deconvolution: " + str(max(dif))
+            
+            
 
 
 def main():

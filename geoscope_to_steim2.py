@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import argparse
 import sys
+import fnmatch
 import glob
 import os
 import logging
@@ -11,6 +12,7 @@ from IPython import embed
 from obspy import read
 from obspy.io.xseed import Parser
 from obspy.signal.invsim import corn_freq_2_paz
+import matplotlib.pyplot as plt
 
 logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
@@ -21,6 +23,11 @@ console_handler.setLevel(logging.CRITICAL)
 console_handler.setFormatter(logging.Formatter(
     '[%(levelname)s](%(name)s): %(message)s'))
 logger.addHandler(console_handler)
+
+
+#            ./geoscope_to_steim2.py  -i ./data/ -o dataout/ -d ./modified/
+
+
 
 
 class geoscope_to_steim2(object):
@@ -40,7 +47,12 @@ class geoscope_to_steim2(object):
             self.file_list.append(args.i)
         elif os.path.isdir(args.i):
             # One directory
-            self.file_list = glob.glob(args.i + '/*')
+            for root, dirs, files in os.walk(args.i):
+                for filename in fnmatch.filter(files, '*'):
+                    #print( os.path.join(root, filename))
+                    self.file_list.append( os.path.join(root, filename))
+            
+        #    self.file_list = glob.glob(args.i + '/*')
 
     def convert_and_save(self):
         """
@@ -116,6 +128,7 @@ class geoscope_to_steim2(object):
             # AGD.G.00.MHZ.1987.123
             new_file_name = str(self.output_dir) + st_ori[0].stats.station + '.' + st_ori[0].stats.network + '.00.' + st_ori[0].stats.channel + '.' + st_ori[
                 0].stats.starttime.format_seed(compact=True).replace(',', '.')[0:8]
+            #nommage en SDS
 
             logger.warn(new_file_name)
             
@@ -130,17 +143,41 @@ class geoscope_to_steim2(object):
             paz_ori = dataless_parser.get_paz(st_ori[0].get_id(),datetime=st_ori[0].stats.starttime)
             #print "paz_ori = ", paz_ori
             paz_1hz_ori = corn_freq_2_paz(1.0, damp=0.707)
-            st_ori.simulate(paz_remove=paz_ori, paz_simulate=paz_1hz_ori)
+#            st_ori.simulate(paz_remove=paz_ori, paz_simulate=paz_1hz_ori)
+            st_ori.simulate(paz_remove=paz_ori, paz_simulate=None)
 
             paz_modif = dataless_parser.get_paz(st_modif[0].get_id(),datetime=st_modif[0].stats.starttime)
             #print "paz_modif = ", paz_modif
             paz_1hz_modif = corn_freq_2_paz(1.0, damp=0.707)
-            st_modif.simulate(paz_remove=paz_modif, paz_simulate=paz_1hz_modif)
+#            st_modif.simulate(paz_remove=paz_modif, paz_simulate=paz_1hz_modif)
+            st_modif.simulate(paz_remove=paz_modif, paz_simulate=None)
 
             tr_orig = st_ori[0]
             tr_modif = st_modif[0]
             dif = tr_modif.data - tr_orig.data
             print "For "+str(st_modif[0].get_id())+" Maximum difference between original geoscope encoding data and convert steim2 data after deconvolution: " + str(max(dif))
+ #           print type(dif.max())
+            if max(dif) > 0.0001:
+                fig = plt.figure()
+                tr_orig.plot(show=False, fig=fig, color='red')
+                tr_modif.plot(show=False, fig=fig, color='black')
+                plt.show()
+                st_modif.plot()
+                st_ori.plot()
+#                 embed()
+#                 break
+#                 for tr in st_ori:
+#                     times = [(tr.stats.starttime + t).datetime for t in tr.times()]
+#                     plt.plot(times, tr.data, linestyle="-", marker=None,
+#                                  color='black', linewidth=1.5, label=tr.id)
+# 
+#                 for tr in st_modif:
+#                     times = [(tr.stats.starttime + t).datetime for t in tr.times()]
+#                     plt.plot(times, tr.data, linestyle="-", marker=None,
+#                                  color='red', linewidth=1.5, label=tr.id)
+#                 plt.grid()
+#                 #plt.legend()
+#                 plt.show()
             
             
 
@@ -189,6 +226,9 @@ def main():
         sys.exit()
 
     converter = geoscope_to_steim2(args)
+    #print converter.file_list
+    #exit()
+    
     converter.convert_and_save()
     if args.dataless:
         converter.verification()

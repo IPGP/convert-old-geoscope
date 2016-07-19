@@ -68,6 +68,7 @@ class scan_float(object):
             file_only_int = False
             file_mul27 = False
             file_mul215 = False
+            file_flat=False
 
             for trace_local in stream_local:
                 converted = False
@@ -83,6 +84,8 @@ class scan_float(object):
                     only_int = True
                     mul27 = False
                     mul215 = False
+                    flat = True
+                    last_sample = trace_local.data[0]
 
                     # test to find floats and int
                     for sample in trace_local.data:
@@ -91,6 +94,11 @@ class scan_float(object):
                             trace_local.data = trace_local.data * 2**7
                             only_int = False
                             break
+                        #le sample n'est pas un float
+                        else:
+                            if sample != last_sample:
+                                flat = False
+                                break
                        
 
                     if not only_int:
@@ -117,9 +125,12 @@ class scan_float(object):
                         file_mul27 = True
                     if mul215:
                         file_mul215 = True
+                    file_flat = flat and file_flat
+                        
             
             file_status = str(input_file)
             if file_only_int: file_status += ' int'
+            if file_flat: file_status += ' flat'
             if file_mul27 : file_status += ' 2_7'
             if file_mul215 : file_status += ' 2_15'
             print  file_status

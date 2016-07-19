@@ -5,6 +5,7 @@ import sys
 import fnmatch
 import glob
 import os
+import numpy
 import logging
 import logging.handlers
 import numpy as np
@@ -26,8 +27,12 @@ logger.addHandler(console_handler)
 
 
 #            ./geoscope_to_steim2.py  -i ./data/ -o dataout/ -d ./modified/
+#            ./geoscope_to_steim2.py  -i ./data/ -o dataout/ -d ./modified/
+#./geoscope_to_steim2.py  -i /Volumes/82-89/donneesGEOSCOPE/1987/G/HDC2/MHZ.D/G.HDC2..MHZ.D.1987.3  -o /tmp/out/  -d ./modified/
 
 
+gain = 2**7
+gain = 1
 
 
 class geoscope_to_steim2(object):
@@ -63,20 +68,30 @@ class geoscope_to_steim2(object):
 
         for input_file in self.file_list:
             stream_local = read(input_file, details=True)
+            print "**************************************************************************************************************"
+            print input_file
+            network,station,locid,channel,data_type,year,day=input_file.split('/')[-1].split('.')
+            
             for trace_local in stream_local:
                 converted=False
-                print "#################################################################"
+                print "#########################################################################################"
                 print trace_local
                 if u'GEOSCOPE16_' not in trace_local.stats.mseed.encoding:
                     print "No GEOSCOPE16 detected for this trace"
                     break
-                elif trace_local.stats.mseed.encoding == u'GEOSCOPE16_3':
-                    print "GEOSCOPE16_3 coding detected for this trace"
-                    trace_local.data = trace_local.data * 2**7
-                    converted = True
-                elif trace_local.stats.mseed.encoding == u'GEOSCOPE16_4':
-                    print "GEOSCOPE16_4 coding detected for this trace"
-                    trace_local.data = trace_local.data * 2**15
+                elif 'GEOSCOPE' in trace_local.stats.mseed.encoding  :
+                    print str(trace_local.stats.mseed.encoding)+" coding detected for this trace"
+                    trace_local.data = trace_local.data * gain
+
+                    #test to find floats
+                    for sample in trace_local.data:
+                        if (int(sample) - sample) != 0:
+                            print "FLOAT "
+                            break
+                        else:
+                            print "ok pour multiplication par 1 !"
+                            break
+                                    
                     converted = True
 
                 if converted:
@@ -103,12 +118,7 @@ class geoscope_to_steim2(object):
                     compact=True).replace(',', '.')[0:8]
 
             # AGD.G.00.MHZ.1987.123
-            new_file_name = str(self.output_dir) + \
-                stream_local[0].stats.station + '.' +\
-                stream_local[0].stats.network + '.00.' + \
-                stream_local[0].stats.channel + '.' +\
-                stream_local[0].stats.starttime.format_seed(
-                    compact=True).replace(',', '.')[0:8]
+            new_file_name = str(self.output_dir) + station+'.'+network +'.00.'+channel+'.'+year+'.'+day
 
             logger.warn("le fichier sera sauvegarde ici: " + new_file_name)
             stream_local.write(
@@ -120,15 +130,14 @@ class geoscope_to_steim2(object):
 
         for input_file in self.file_list:
             st_ori = read(input_file, details=True)
-
+            network,station,locid,channel,data_type,year,day=input_file.split('/')[-1].split('.')
+            
             # G.AGD.00.MHZ.1987.123
             new_file_name = str(self.output_dir) + st_ori[0].stats.network + '.' + st_ori[0].stats.station + '.00.' + st_ori[0].stats.channel + '.' + st_ori[
                 0].stats.starttime.format_seed(compact=True).replace(',', '.')[0:8]
 
             # AGD.G.00.MHZ.1987.123
-            new_file_name = str(self.output_dir) + st_ori[0].stats.station + '.' + st_ori[0].stats.network + '.00.' + st_ori[0].stats.channel + '.' + st_ori[
-                0].stats.starttime.format_seed(compact=True).replace(',', '.')[0:8]
-            #nommage en SDS
+            new_file_name = str(self.output_dir) + station+'.'+network +'.00.'+channel+'.'+year+'.'+day
 
             logger.warn(new_file_name)
             
@@ -154,17 +163,23 @@ class geoscope_to_steim2(object):
 
             tr_orig = st_ori[0]
             tr_modif = st_modif[0]
-            dif = tr_modif.data - tr_orig.data
-            print "For "+str(st_modif[0].get_id())+" Maximum difference between original geoscope encoding data and convert steim2 data after deconvolution: " + str(max(dif))
+            #embed()
+            max_dif_percent = abs(100-max(100*numpy.nan_to_num(numpy.nan_to_num(tr_modif.data)/numpy.nan_to_num(tr_orig))))
+            
+            print "For "+str(st_modif[0].get_id())+'.'+st_modif[0].stats.starttime.format_seed(compact=True).replace(',', '.')[0:8]+" Maximum difference % between original geoscope encoding data and convert steim2 data after deconvolution: " + str(max_dif_percent)
+ 
+            print "orig: "+str(tr_modif.data[5]) 
+            print "modi: "+str(tr_orig.data[5])
+            #embed()
  #           print type(dif.max())
-            if max(dif) > 0.0001:
+            if max_dif_percent > 0.001:
                 fig = plt.figure()
-                tr_orig.plot(show=False, fig=fig, color='red')
-                tr_modif.plot(show=False, fig=fig, color='black')
+                st_orig.plot(show=False, fig=fig, color='red')
+                st_modif.plot(show=False, fig=fig, color='black')
                 plt.show()
-                st_modif.plot()
-                st_ori.plot()
-#                 embed()
+                #st_modif.plot()
+                #st_ori.plot()
+                #embed()
 #                 break
 #                 for tr in st_ori:
 #                     times = [(tr.stats.starttime + t).datetime for t in tr.times()]
@@ -237,4 +252,5 @@ def main():
 
     #
 if __name__ == '__main__':
+    np.seterr(divide='ignore', invalid='ignore')
     main()

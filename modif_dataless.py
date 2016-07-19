@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created on Fri May 13 14:56:35 2016
@@ -9,6 +10,10 @@ from obspy.io.xseed import Parser
 import copy
 import sys
 import os
+
+
+gain_geoscope_3=2**7
+gain_geoscope_4=2**7
 
 
 def modify(filename) :
@@ -111,12 +116,12 @@ def modify(filename) :
                     if b.stage_sequence_number == 0:
                         # If stage 0, add gain blockette before
                         newb = copy.deepcopy(blksta[i])
-                        newb.sensitivity_gain = 128
+                        newb.sensitivity_gain = gain_geoscope_3
                         newb.stage_sequence_number = blksta[i-1].stage_sequence_number + 1
                         print "new stage =", newb.stage_sequence_number
                         blksta.insert(clone, newb)
                         clone += 1
-                        b.sensitivity_gain *= 128
+                        b.sensitivity_gain *= gain_geoscope_3
                         i += 1
                     blksta.insert(clone, b)               
                     clone += 1
@@ -178,12 +183,12 @@ def modify(filename) :
                     if b.stage_sequence_number == 0:
                         # If stage 0, add gain blockette before
                         newb = copy.deepcopy(blksta[i])
-                        newb.sensitivity_gain = 32768
+                        newb.sensitivity_gain = gain_geoscope_4
                         newb.stage_sequence_number = blksta[i-1].stage_sequence_number + 1
                         print "new stage =", newb.stage_sequence_number
                         blksta.insert(clone, newb)
                         clone += 1
-                        b.sensitivity_gain *= 32768
+                        b.sensitivity_gain *= gain_geoscope_4
                         i += 1
                     blksta.insert(clone, b)               
                     clone += 1

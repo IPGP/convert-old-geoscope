@@ -25,10 +25,7 @@ console_handler.setFormatter(logging.Formatter(
     '[%(levelname)s](%(name)s): %(message)s'))
 logger.addHandler(console_handler)
 
-
-#            ./geoscope_to_steim2.py  -i ./data/ -o dataout/ -d ./modified/
-#            ./geoscope_to_steim2.py  -i ./data/ -o dataout/ -d ./modified/
-#./geoscope_to_steim2.py  -i /Volumes/82-89/donneesGEOSCOPE/1987/G/HDC2/MHZ.D/G.HDC2..MHZ.D.1987.3  -o /tmp/out/  -d ./modified/
+#./scan_float.py  -i /Volumes/82-89/donneesGEOSCOPE/1987/G/
 
 
 gain = 2**8
@@ -67,6 +64,10 @@ class scan_float(object):
             # print input_file
             network, station, locid, channel, data_type, year, day = input_file.split(
                 '/')[-1].split('.')
+
+            file_only_int = False
+            file_mul27 = False
+            file_mul215 = False
 
             for trace_local in stream_local:
                 converted = False
@@ -110,9 +111,19 @@ class scan_float(object):
                                 break
                             mul215 = True
 
-                    if only_int: print str(input_file) + ' is only int'
-                    if mul27: print str(input_file) + ' 2**7'
-                    if mul215: print str(input_file) + ' 2**15'
+                    if only_int:
+                        file_only_int = True
+                    if mul27:
+                        file_mul27 = True
+                    if mul215:
+                        file_mul215 = True
+            
+            file_status = str(input_file)
+            if file_only_int: file_status += ' int'
+            if file_mul27 : file_status += ' 2_7'
+            if file_mul215 : file_status += ' 2_15'
+            print  file_status
+            
                     
                     
 def main():

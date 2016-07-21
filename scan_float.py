@@ -6,8 +6,6 @@ import fnmatch
 import glob
 import os
 import numpy
-import logging
-import logging.handlers
 import numpy as np
 from IPython import embed
 from obspy import read
@@ -15,21 +13,8 @@ from obspy.io.xseed import Parser
 from obspy.signal.invsim import corn_freq_2_paz
 import matplotlib.pyplot as plt
 
-logger = logging.getLogger()
-logger.setLevel(logging.ERROR)
-# also log to the console at a level determined by the --verbose flag
-console_handler = logging.StreamHandler()  # sys.stderr
-# set later by set_log_level_from_verbose() in interactive sessions
-console_handler.setLevel(logging.CRITICAL)
-console_handler.setFormatter(logging.Formatter(
-    '[%(levelname)s](%(name)s): %(message)s'))
-logger.addHandler(console_handler)
 
 #./scan_float.py  -i /Volumes/82-89/donneesGEOSCOPE/1987/G/
-
-
-gain = 2**8
-#gain = 1
 
 
 class scan_float(object):
@@ -51,7 +36,7 @@ class scan_float(object):
 
         #    self.file_list = glob.glob(args.i + '/*')
 
-    def convert_and_save(self):
+    def scan(self):
         """
         Convert streams in GEOSCOPE16_3 or GEOSCOPE16_4 format
         to STEIM 2 streams with locid OO.
@@ -68,27 +53,27 @@ class scan_float(object):
             file_only_int = False
             file_mul27 = False
             file_mul215 = False
-            file_flat=False
-            file_encoding= None
+            file_flat = True
+            file_encoding = None
 
             for trace_local in stream_local:
                 converted = False
                 # print "#########################################################################################"
-                #print trace_local
+                # print trace_local
                 encoding = trace_local.stats.mseed.encoding
                 if not file_encoding:
                     file_encoding = encoding
                 elif file_encoding != encoding:
                     print 'multi-encodage'
-                    file_encoding = file_encoding + ' '+encoding + ' multi-encodage'
-                        
+                    file_encoding = file_encoding + ' ' + encoding + ' multi-encodage'
+
                 if u'GEOSCOPE16_' not in encoding:
-                    # print "No GEOSCOPE16 detected for this trace"   
+                    # print "No GEOSCOPE16 detected for this trace"
                     break
                 elif 'GEOSCOPE' in encoding:
                     # print str(trace_local.stats.mseed.encoding)+" coding
                     # detected for this trace"
-                    
+
                     only_int = True
                     mul27 = False
                     mul215 = False
@@ -97,17 +82,16 @@ class scan_float(object):
 
                     # test to find floats and int
                     for sample in trace_local.data:
-                        # si sample est un float
+                        # if sample is a float
                         if (int(sample) - sample) != 0:
                             trace_local.data = trace_local.data * 2**7
                             only_int = False
                             break
-                        #le sample n'est pas un float
+                        # le sample n'est pas un float
                         else:
                             if sample != last_sample:
                                 flat = False
                                 break
-                       
 
                     if not only_int:
                         for sample_27 in trace_local.data:
@@ -116,8 +100,7 @@ class scan_float(object):
                                 trace_local.data = trace_local.data * 2**8
                                 mul27 = False
                                 break
-                            mul27= True
-
+                            mul27 = True
 
                     if not mul27 and not only_int:
                         for sample_215 in trace_local.data:
@@ -134,17 +117,19 @@ class scan_float(object):
                     if mul215:
                         file_mul215 = True
                     file_flat = flat and file_flat
-                        
-            
-            file_status = str(input_file) + ' '+file_encoding
-            if file_only_int: file_status += ' int'
-            if file_flat: file_status += ' flat'
-            if file_mul27 : file_status += ' 2_7'
-            if file_mul215 : file_status += ' 2_15'
-            print  file_status
-            
-                    
-                    
+
+            file_status = str(input_file) + ' ' + file_encoding
+            if file_only_int:
+                file_status += ' int'
+            if file_flat:
+                file_status += ' flat'
+            if file_mul27:
+                file_status += ' 2_7'
+            if file_mul215:
+                file_status += ' 2_15'
+            print file_status
+
+
 def main():
 
     # Parametres
@@ -167,28 +152,13 @@ def main():
     # parse arguments
     args = parser.parse_args()
 
-    if not args.verbose:
-        console_handler.setLevel('ERROR')
-    elif args.verbose == 1:
-        console_handler.setLevel('WARNING')
-    elif args.verbose == 2:
-        console_handler.setLevel('INFO')
-    elif args.verbose >= 3:
-        console_handler.setLevel('DEBUG')
-    else:
-        logger.critical("UNEXPLAINED NEGATIVE COUNT!")
-
     if args.i is None:
         print "geoscope_to_steim2 needs a filename or a directory"
         print parser.print_help()
         sys.exit()
 
     converter = scan_float(args)
-    converter.convert_and_save()
-    # print converter.file_list
-    # exit()
-
-    logging.shutdown()
+    converter.scan()
 
     #
 if __name__ == '__main__':

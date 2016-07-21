@@ -12,27 +12,27 @@ import sys
 import os
 
 
-gain_geoscope_3=2**7
-gain_geoscope_4=2**7
+gain_geoscope_3 = 2**7
+gain_geoscope_4 = 2**7
 
 
-def modify(filename) :
+def modify(filename):
 
-    print filename    
-    
+    print filename
+
     # Load Dataless to modify, assume only one station
-    p = Parser("./dataless/"+filename)
-    
+    p = Parser("./dataless/" + filename)
+
     # Get Data Format Identifier Codes
     lookup_steim2 = -1
     lookup_geoscope_3bit = -1
     lookup_geoscope_4bit = -1
-    i=0
+    i = 0
     format_lookup_list = []
     print "---- Get data format identifier codes ----"
     while i < len(p.abbreviations):
         if p.abbreviations[i].blockette_type == 30:
-            # Increment number of format          
+            # Increment number of format
             # Get Data Format Identifier Code for Steim2
             if p.abbreviations[i].short_descriptive_name.rfind("2") != -1:
                 lookup_steim2 = p.abbreviations[i].data_format_identifier_code
@@ -40,18 +40,20 @@ def modify(filename) :
                 format_lookup_list.append(lookup_steim2)
             # Get Data Format Identifier Code for Geoscope 3 bits
             if p.abbreviations[i].short_descriptive_name.rfind("3") != -1:
-                lookup_geoscope_3bit = p.abbreviations[i].data_format_identifier_code
+                lookup_geoscope_3bit = p.abbreviations[
+                    i].data_format_identifier_code
                 print "lookup_3bit = ", lookup_geoscope_3bit
                 format_lookup_list.append(lookup_geoscope_3bit)
             # Get Data Format Identifier Code for Geoscope 4 bits
             if p.abbreviations[i].short_descriptive_name.rfind("4") != -1:
-                lookup_geoscope_4bit = p.abbreviations[i].data_format_identifier_code
+                lookup_geoscope_4bit = p.abbreviations[
+                    i].data_format_identifier_code
                 print "lookup_4bit = ", lookup_geoscope_4bit
                 format_lookup_list.append(lookup_geoscope_4bit)
-        i+=1
-                    
+        i += 1
+
     print format_lookup_list
-    
+
     # Create Steim2 Data Format blockette if it does not exist
     print "---- Create Steim2 Data Format blockette if it does not exist ----"
     if lookup_steim2 == -1:
@@ -59,46 +61,47 @@ def modify(filename) :
         psteim2 = Parser("./test/dataless.G.CLF.seed")
         # Copy it on current dataless
         p.abbreviations.insert(0, psteim2.abbreviations[0])
-        # create new lookup code (make sure it is not already used otherwise increment)
+        # create new lookup code (make sure it is not already used otherwise
+        # increment)
         lookup_steim2 = 1
-        while lookup_steim2 in format_lookup_list :
-            lookup_steim2 += 1     
+        while lookup_steim2 in format_lookup_list:
+            lookup_steim2 += 1
         print lookup_steim2
         # Set new lookup code
         p.abbreviations[0].data_format_identifier_code = lookup_steim2
-        
-    
+
     # Get Station = first station
     print "---- Get Station = first station ----"
     blksta = p.stations[0]
-    
+
     # Remove Comment Blockettes
     print "---- Remove Comment Blockettes ----"
-    i=1
+    i = 1
     while i < len(blksta):
         if blksta[i].blockette_type == 51:
             blksta.pop(i)
         else:
-            i+=1
-            
+            i += 1
+
     # Remove Comment Blockettes
-    i=1
+    i = 1
     while i < len(blksta):
         if blksta[i].blockette_type == 59:
             blksta.pop(i)
         else:
-            i+=1
-        
-    # Look for all blockettes 52 that reference to one of Geoscope Data Format Identifier Code
+            i += 1
+
+    # Look for all blockettes 52 that reference to one of Geoscope Data Format
+    # Identifier Code
     print "---- Look for all blockettes 52 that reference Geoscope Data Format 3 bit ----"
-    i=1
+    i = 1
     clone = -1
     if lookup_geoscope_3bit != -1:
-        while i < len(blksta) :
+        while i < len(blksta):
             if blksta[i].blockette_type == 52:
-                if blksta[i].data_format_identifier_code == lookup_geoscope_3bit :                
-                    print ""                
-                    print blksta[i].channel_identifier , blksta[i].start_date, blksta[i].location_identifier
+                if blksta[i].data_format_identifier_code == lookup_geoscope_3bit:
+                    print ""
+                    print blksta[i].channel_identifier, blksta[i].start_date, blksta[i].location_identifier
                     # Clone blockette 52
                     blksta.insert(i, copy.deepcopy(blksta[i]))
                     blksta[i].location_identifier = "00"
@@ -108,39 +111,39 @@ def modify(filename) :
                 else:
                     clone = -1
             else:
-                if clone != -1: # Blockette is concerned
+                if clone != -1:  # Blockette is concerned
                     print blksta[i].stage_sequence_number, blksta[i].blockette_type,
-                    # Clone blockette                 
+                    # Clone blockette
                     b = copy.deepcopy(blksta[i])
                     # Detect stage 0
                     if b.stage_sequence_number == 0:
                         # If stage 0, add gain blockette before
                         newb = copy.deepcopy(blksta[i])
                         newb.sensitivity_gain = gain_geoscope_3
-                        newb.stage_sequence_number = blksta[i-1].stage_sequence_number + 1
+                        newb.stage_sequence_number = blksta[
+                            i - 1].stage_sequence_number + 1
                         print "new stage =", newb.stage_sequence_number
                         blksta.insert(clone, newb)
                         clone += 1
                         b.sensitivity_gain *= gain_geoscope_3
                         i += 1
-                    blksta.insert(clone, b)               
+                    blksta.insert(clone, b)
                     clone += 1
                     i += 1
-            i+=1
-            
-            
+            i += 1
+
     # Verify
     print ""
     print ""
     print "---- Verify ----"
-    i=1
+    i = 1
     display = -1
     if lookup_geoscope_3bit != -1:
-        while i < len(blksta) :
+        while i < len(blksta):
             if blksta[i].blockette_type == 52:
-                if blksta[i].data_format_identifier_code == lookup_geoscope_3bit :                
-                    print ""                
-                    print blksta[i].channel_identifier , blksta[i].start_date,  blksta[i].location_identifier
+                if blksta[i].data_format_identifier_code == lookup_geoscope_3bit:
+                    print ""
+                    print blksta[i].channel_identifier, blksta[i].start_date,  blksta[i].location_identifier
                     display = 1
                 else:
                     display = -1
@@ -151,20 +154,20 @@ def modify(filename) :
                     else:
                         print blksta[i].stage_sequence_number, blksta[i].blockette_type,
             i += 1
-            
-            
-    # Look for all blockettes 52 that reference to one of Geoscope Data Format Identifier Code
+
+    # Look for all blockettes 52 that reference to one of Geoscope Data Format
+    # Identifier Code
     print ""
     print ""
     print "---- Look for all blockettes 52 that reference Geoscope Data Format 4 bit ----"
-    i=1
+    i = 1
     clone = -1
     if lookup_geoscope_4bit != -1:
-        while i < len(blksta) :
+        while i < len(blksta):
             if blksta[i].blockette_type == 52:
-                if blksta[i].data_format_identifier_code == lookup_geoscope_4bit :                
-                    print ""                
-                    print blksta[i].channel_identifier , blksta[i].start_date, blksta[i].location_identifier
+                if blksta[i].data_format_identifier_code == lookup_geoscope_4bit:
+                    print ""
+                    print blksta[i].channel_identifier, blksta[i].start_date, blksta[i].location_identifier
                     # Clone blockette 52
                     blksta.insert(i, copy.deepcopy(blksta[i]))
                     blksta[i].location_identifier = "00"
@@ -175,39 +178,39 @@ def modify(filename) :
                 else:
                     clone = -1
             else:
-                if clone != -1: # Blockette is concerned
+                if clone != -1:  # Blockette is concerned
                     print blksta[i].stage_sequence_number, blksta[i].blockette_type,
-                    # Clone blockette                 
+                    # Clone blockette
                     b = copy.deepcopy(blksta[i])
                     # Detect stage 0
                     if b.stage_sequence_number == 0:
                         # If stage 0, add gain blockette before
                         newb = copy.deepcopy(blksta[i])
                         newb.sensitivity_gain = gain_geoscope_4
-                        newb.stage_sequence_number = blksta[i-1].stage_sequence_number + 1
+                        newb.stage_sequence_number = blksta[
+                            i - 1].stage_sequence_number + 1
                         print "new stage =", newb.stage_sequence_number
                         blksta.insert(clone, newb)
                         clone += 1
                         b.sensitivity_gain *= gain_geoscope_4
                         i += 1
-                    blksta.insert(clone, b)               
+                    blksta.insert(clone, b)
                     clone += 1
                     i += 1
-            i+=1
-            
-            
+            i += 1
+
     # Verify
     print ""
     print ""
     print "---- Verify ----"
-    i=1
+    i = 1
     display = -1
     if lookup_geoscope_4bit != -1:
-        while i < len(blksta) :
+        while i < len(blksta):
             if blksta[i].blockette_type == 52:
-                if blksta[i].data_format_identifier_code == lookup_geoscope_4bit :                
-                    print ""                
-                    print blksta[i].channel_identifier , blksta[i].start_date,  blksta[i].location_identifier
+                if blksta[i].data_format_identifier_code == lookup_geoscope_4bit:
+                    print ""
+                    print blksta[i].channel_identifier, blksta[i].start_date,  blksta[i].location_identifier
                     display = 1
                 else:
                     display = -1
@@ -218,27 +221,21 @@ def modify(filename) :
                     else:
                         print blksta[i].stage_sequence_number, blksta[i].blockette_type,
             i += 1
-        
-     
-    
-    
+
     # Write new dataless
     print ""
     print "---- Write new dataless ----"
-    p.write_seed("./modified/"+filename)
-
-
-
+    p.write_seed("./modified/" + filename)
 
 
 ################################################
 
 directory = os.listdir("./dataless")
 
-for file in directory :   
+for file in directory:
     if "dataless" in file:
-        print file        
+        print file
         modify(file)
 
 #file = "dataless.G.BNG.seed"
-#modify(file)
+# modify(file)

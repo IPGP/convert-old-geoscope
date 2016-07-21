@@ -28,8 +28,6 @@ logger.addHandler(console_handler)
 #            ../scan_encoding.py -i /Volumes/82-89/donneesGEOSCOPE/1987/G/NOC/VHZ.D/ -f
 
 
-
-
 class scan_encoding(object):
 
     def __init__(self, args):
@@ -38,8 +36,7 @@ class scan_encoding(object):
         self.channels_coding = []
         self.channels_coding_start_time = {}
         self.channels_coding_end_time = {}
-        
-       
+
         if os.path.isfile(args.i):
             # One file
             self.file_list.append(args.i)
@@ -48,55 +45,56 @@ class scan_encoding(object):
             for root, dirs, files in os.walk(args.i):
                 for filename in fnmatch.filter(files, '*'):
                     #print( os.path.join(root, filename))
-                    self.file_list.append( os.path.join(root, filename))
+                    self.file_list.append(os.path.join(root, filename))
 
         if args.file:
             for input_file in self.file_list:
-                stream_local = read(input_file ,headonly=True)
+                stream_local = read(input_file, headonly=True)
                 for trace_local in stream_local:
-                    tmp=trace_local.get_id()+'_'+trace_local.stats.mseed.encoding
-                    print input_file+'\t'+tmp+'\t'+str(trace_local.stats.starttime)+'\t'+str(trace_local.stats.endtime)
+                    tmp = trace_local.get_id() + '_' + trace_local.stats.mseed.encoding
+                    print input_file + '\t' + tmp + '\t' + str(trace_local.stats.starttime) + '\t' + str(trace_local.stats.endtime)
         else:
             for input_file in reversed(self.file_list):
-                stream_local = read(input_file ,headonly=True)
+                stream_local = read(input_file, headonly=True)
                 for trace_local in stream_local:
-                
-                    tmp=trace_local.get_id()+'_'+trace_local.stats.mseed.encoding
-                
-                    #New channel + encoding
+
+                    tmp = trace_local.get_id() + '_' + trace_local.stats.mseed.encoding
+
+                    # New channel + encoding
                     if tmp not in self.channels_coding:
                         self.channels_coding.append(tmp)
-                        self.channels_coding_start_time[tmp]=trace_local.stats.starttime
-                        self.channels_coding_end_time[tmp]=trace_local.stats.endtime
-                    #Known channel but maybe with new dates 
+                        self.channels_coding_start_time[
+                            tmp] = trace_local.stats.starttime
+                        self.channels_coding_end_time[
+                            tmp] = trace_local.stats.endtime
+                    # Known channel but maybe with new dates
                     else:
                         if trace_local.stats.starttime < self.channels_coding_start_time[tmp]:
-                            self.channels_coding_start_time[tmp]=trace_local.stats.starttime
+                            self.channels_coding_start_time[
+                                tmp] = trace_local.stats.starttime
                         if trace_local.stats.endtime > self.channels_coding_end_time[tmp]:
-                            self.channels_coding_end_time[tmp]=trace_local.stats.endtime
-                        #print tmp+'\t'+ str(self.channels_coding_start_time[tmp])+ '\t'+str(self.channels_coding_end_time[tmp])
+                            self.channels_coding_end_time[
+                                tmp] = trace_local.stats.endtime
+                        # print tmp+'\t'+
+                        # str(self.channels_coding_start_time[tmp])+
+                        # '\t'+str(self.channels_coding_end_time[tmp])
 
-        
             for channel in self.channels_coding:
-                print channel+'\t'+ str(self.channels_coding_start_time[channel])+ '\t'+str(self.channels_coding_end_time[channel])
-                    
+                print channel + '\t' + str(self.channels_coding_start_time[channel]) + '\t' + str(self.channels_coding_end_time[channel])
 
 
-             
 def main():
 
     # Parametres
     formatter_class = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(
-        description='scan files or directory and print unique coding for each channel'
-        , formatter_class=formatter_class)
+        description='scan files or directory and print unique coding for each channel', formatter_class=formatter_class)
     # Station
     parser.add_argument(
         "-i", type=str, help="Name of the input file or directory", required=False)
 
     parser.add_argument("-f", "--file", help="print coding for each file.",
-                         required=False, action='store_true')
-                    
+                        required=False, action='store_true')
 
     parser.add_argument("-v", "--verbose", dest="verbose",
                         action="count", default=0,
@@ -122,8 +120,7 @@ def main():
         sys.exit()
 
     converter = scan_encoding(args)
-    
-  
+
     logging.shutdown()
 
     #

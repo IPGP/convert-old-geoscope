@@ -69,18 +69,26 @@ class scan_float(object):
             file_mul27 = False
             file_mul215 = False
             file_flat=False
+            file_encoding= None
 
             for trace_local in stream_local:
                 converted = False
                 # print "#########################################################################################"
                 #print trace_local
-                if u'GEOSCOPE16_' not in trace_local.stats.mseed.encoding:
-                    # print "No GEOSCOPE16 detected for this trace"
+                encoding = trace_local.stats.mseed.encoding
+                if not file_encoding:
+                    file_encoding = encoding
+                elif file_encoding != encoding:
+                    print 'multi-encodage'
+                    file_encoding = file_encoding + ' '+encoding + ' multi-encodage'
+                        
+                if u'GEOSCOPE16_' not in encoding:
+                    # print "No GEOSCOPE16 detected for this trace"   
                     break
-                elif 'GEOSCOPE' in trace_local.stats.mseed.encoding:
+                elif 'GEOSCOPE' in encoding:
                     # print str(trace_local.stats.mseed.encoding)+" coding
                     # detected for this trace"
-
+                    
                     only_int = True
                     mul27 = False
                     mul215 = False
@@ -128,7 +136,7 @@ class scan_float(object):
                     file_flat = flat and file_flat
                         
             
-            file_status = str(input_file)
+            file_status = str(input_file) + ' '+file_encoding
             if file_only_int: file_status += ' int'
             if file_flat: file_status += ' flat'
             if file_mul27 : file_status += ' 2_7'

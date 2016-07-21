@@ -53,7 +53,7 @@ class scan_float(object):
             file_only_int = False
             file_mul27 = False
             file_mul215 = False
-            file_flat = True
+            file_flat = False
             file_encoding = None
 
             for trace_local in stream_local:
@@ -92,6 +92,8 @@ class scan_float(object):
                             if sample != last_sample:
                                 flat = False
                                 break
+                            else:
+                                last_sample = sample
 
                     if not only_int:
                         for sample_27 in trace_local.data:

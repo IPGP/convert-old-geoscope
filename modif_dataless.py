@@ -33,6 +33,8 @@ class channel_period(object):
         string=self.network,self.station,self.locid,self.channel,self.start_time,self.end_time
         return str(string)
     
+    
+
 class modify_dataless(object):
 
     def __init__(self, args):

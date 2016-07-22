@@ -24,7 +24,7 @@ gain = 1
 class geoscope_to_steim2(object):
 
     def __init__(self, args):
-
+        self.convert_start_time=UTCDateTime()
         self.file_list = []
         self.file_streams = []
 
@@ -94,6 +94,7 @@ class geoscope_to_steim2(object):
             ### End of channel processing
             bar.next()
         bar.finish()
+        print "Total time: ",(UTCDateTime()-self.convert_start_time)
         
 
 def main():

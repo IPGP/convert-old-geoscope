@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import argparse
-import sys
-import fnmatch
-import os
 import numpy
 import cPickle
 import numpy as np
@@ -15,10 +12,10 @@ import matplotlib.pyplot as plt
 from obspy.clients.filesystem import sds
 from modif_dataless import channel_period
 from progress.bar import Bar
+from obspy import UTCDateTime
 
 
-#./geoscope_to_steim2.py  -i /Volumes/82-89/donneesGEOSCOPE/1987/G/HDC2/MHZ.D/G.HDC2..MHZ.D.1987.3  -o /tmp/out/  -d ./modified/
-
+# ./geoscope_to_steim2.py --sds /Volumes/82-89/donneesGEOSCOPE/  --dataless_resume ./dataless.p
 
 gain = 2**7
 gain = 1
@@ -37,6 +34,7 @@ class geoscope_to_steim2(object):
             self.output_dir = args.output + '/'
         self.dataless_dir = args.dataless
 
+        print "Reading SDS archive"
         self.sds_client = sds.Client(args.sds)
         self.dataless_resume = cPickle.load(open(args.dataless_resume, "rb"))
 
@@ -49,22 +47,51 @@ class geoscope_to_steim2(object):
 
 
         bar = Bar('Processing dataless channels', max=len(self.dataless_resume))
-
-            
-        
-
         for item in self.dataless_resume:
             # print item
+            st = self.sds_client.get_waveforms(
+                item.network, item.station, item.locid, item.channel, item.start_time, item.end_time, details=True)
+            stream_gain = 1
+            
+            bar_trace = Bar('Processing traces ', max=len(st))
+            for trace_local in st:
+                # print tr.stats
+                if u'GEOSCOPE16_' not in trace_local.stats.mseed.encoding:
+                    print "No GEOSCOPE16 detected for this trace"
+                    print tr
+                    exit()
+                local_gain=1
+                
+               # test to find floats and int
+                for sample in trace_local.data:
+                    # if sample is a float
+                    if (int(sample) - sample) != 0:
+                        local_gain=2**7
+                        trace_local.data = trace_local.data * local_gain
+                        break
 
-            if item.station != 'TOTO':
-                st = self.sds_client.get_waveforms(
-                    item.network, item.station, item.locid, item. channel, item.start_time, item.end_time, details=True)
-                for tr in st:
-                    # print tr.stats
-                    if u'GEOSCOPE16_' not in tr.stats.mseed.encoding:
-                        print "No GEOSCOPE16 detected for this trace"
-                        print tr
-                        exit()
+
+
+                if local_gain != 1:
+                    for sample_27 in trace_local.data:
+                        # si sample * 2**7 est un float
+                        if (int(sample_27) - sample_27) != 0:
+                            local_gain=local_gain*2
+                            trace_local.data = trace_local.data * local_gain
+                            break
+
+                ### Last verification !
+                for sample_final in trace_local.data:
+                        # si sample * 2**15 est un float
+                        if (int(sample_final) - sample_final) != 0:
+                            print str(tr) +' '+ local_gain,' is not enough !'
+                            exit()
+                if local_gain > stream_gain:
+                    stream_gain = local_gain
+                    print "for ",item.station, item.channel,item.start_time, item.end_time,"gain is ",stream_gain
+                bar_trace.next()
+            bar_trace.finish()
+            ### End of channel processing
             bar.next()
         bar.finish()
         

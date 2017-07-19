@@ -1,0 +1,3 @@
+geoscope_to_steim2: Convert miniseed files with geoscope 13 or 14 encoding to miniseed file with  Steim 2 encoding
+scan_encoding.py: scan files or directory and print unique coding for each channel
+

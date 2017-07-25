@@ -7,6 +7,7 @@ from obspy.io.xseed import Parser as Dataless_Parser
 #from modif_dataless import channel_period
 from obspy import UTCDateTime
 import os
+import sys
 from glob import glob
 import fnmatch
 from obspy import read
@@ -20,7 +21,7 @@ class geoscope_to_steim2(object):
 
     def __init__(self, args):
 
-        self.max_convertion_error = 1e-12
+        self.max_percentage_error = 0.001
         self.convert_start_time = UTCDateTime()
         self.file_list = []
         self.file_streams = []
@@ -193,14 +194,15 @@ class geoscope_to_steim2(object):
                 trace_local_modif.data = trace_local_modif.data / s
                 max_diff = max(trace_local_init.data - trace_local_modif.data)
                 indice_max = np.argmax(trace_local_init.data - trace_local_modif.data)
+                error_percentage = max_diff*100/trace_local_modif.data[indice_max]
       
                 
-                if max_diff > self.max_convertion_error:
+                if error_percentage > self.max_percentage_error:
                     print "##########################################################################################################################"
                     print 'Maximum difference of ' + str(max_diff) + ' in physical units for ' + input_file
                     print "valeur initiale\t" + str(trace_local_init.data[indice_max])
                     print "valeur finale\t" + str(trace_local_modif.data[indice_max])
-                    print "pourcentage erreur\t" + str(max_diff*100/trace_local_modif.data[indice_max])
+                    print "pourcentage erreur\t" + str(error_percentage)
                 
                 
                     self.check_error = True
@@ -226,36 +228,32 @@ def main():
         description='Convert miniseed files with geoscope 13 or 14 encoding to\
         miniseed file with  Steim 2 encoding.  ', formatter_class=formatter_class)
 
-#    parser.add_argument("-s",
- #       "--sds", type=str, help="path of the SDS archive", required=True)
+    parser.add_argument('data_source_dir', action='store', type=str,
+                        help='path of directories containing data to convert or files')
 
-    # Station
-    parser.add_argument('data_source_dir', action="store", type=str,
-                        help="path of directories containing data to convert or files")
 
-#    parser.add_argument("-s",
- #       "--sds", type=str, help="path of the SDS archive", required=True)
-
-    # parser.add_argument(
-   #     "--dataless_resume", type=str, help="dataless_resume file", required=True,
-   #     default='dataless.p')
-
-    parser.add_argument("-o", "--output", type=str, help='Name of the outputfile directory',
+    parser.add_argument('-o', '--output', type=str, help='Name of the outputfile directory',
                         required=False)
 
-    parser.add_argument("-d", "--dataless", type=str,
+    parser.add_argument('-d', '--dataless', type=str,
                         help='Name of the dataless or directory of dataless to\
                          use for verification', required=False)
 
-    parser.add_argument("-v", "--verbose", dest="verbose",
-                        action="count", default=0,
-                        help="increases log verbosity for each occurence.")
+    parser.add_argument('-c','--check_dataless_only', action='store_true')
+
 
     # parse arguments
-    args = parser.parse_args()
-
+    try:
+       args = parser.parse_args()
+    except:
+        parser.print_help()
+        sys.exit(0)
+    
     converter = geoscope_to_steim2(args)
-    converter.convert_and_save()
+    
+    if not args.check_dataless_only:
+        converter.convert_and_save()
+    
     converter.check_dataless()
 
     #

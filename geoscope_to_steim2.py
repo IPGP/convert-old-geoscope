@@ -151,7 +151,13 @@ class geoscope_to_steim2(object):
     def check_dataless(self):
 
         print "Dataless and data check"
-        dataless_parser = Dataless_Parser(self.dataless)
+
+        try:
+           dataless_parser = Dataless_Parser(self.dataless)
+        except:
+            print('Dataless file does not exist or has a problem')
+            sys.exit(0)
+
         self.check_error = False
 
         for input_file in self.file_list:

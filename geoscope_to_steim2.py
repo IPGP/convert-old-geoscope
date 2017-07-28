@@ -116,7 +116,7 @@ class geoscope_to_steim2(object):
                 self.print_results()
 
                 # new locid and mseed.encoding
-                for trace in stream_local:
+                for trace in stream_local:                       
                     trace.stats.mseed.encoding = u'STEIM2'
                     trace.stats.location = u'00'
 

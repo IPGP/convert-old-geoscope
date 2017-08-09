@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argparse
-import numpy as np
+
 #from IPython import embed
-from obspy.io.xseed import Parser as Dataless_Parser
-#from modif_dataless import channel_period
-from obspy import UTCDateTime
+
+import argparse
 import os
 import sys
 from glob import glob
 import fnmatch
+import numpy as np
 from obspy import read
+from obspy.io.xseed import Parser as Dataless_Parser
+from obspy import UTCDateTime
 
 
 # ./modif_dataless.py -s -i ./dataless/dataless.G.BNG.seed
@@ -19,9 +20,10 @@ from obspy import read
 
 class geoscope_to_steim2(object):
 
-    def __init__(self, args):
+    def __init__(self, args,coefficient):
 
-        self.max_percentage_error = 0.001
+        self.coefficient=coefficient
+        self.max_percentage_error = args.error_percentage
         self.convert_start_time = UTCDateTime()
         self.file_list = []
         self.file_streams = []
@@ -44,6 +46,8 @@ class geoscope_to_steim2(object):
                     for filename in fnmatch.filter(files, '*'):
                         #print( os.path.join(root, filename))
                         self.file_list.append(os.path.join(root, filename))
+        
+        self.file_list.sort()
         # print self.file_list
 
     def convert_and_save(self):
@@ -79,7 +83,6 @@ class geoscope_to_steim2(object):
                     exit()
 
                 if u'GEOSCOPE16_' not in trace_local.stats.mseed.encoding:
-                    pass
                     print "No GEOSCOPE16 detected for this trace"
                     print trace_local
 
@@ -87,11 +90,8 @@ class geoscope_to_steim2(object):
                     print trace_local.stats.mseed.encoding + " detected for this trace"
                     print trace_local
 
-                    coef = 2**7
-
-                    trace_local.data = coef * trace_local.data
-                    trace_local.data = np.array(
-                        trace_local.data, dtype='int32')
+                    trace_local.data = self.coefficient * trace_local.data
+                    trace_local.data = np.array(trace_local.data, dtype='int32')
                     # print trace_local.data
 
                     trace_local_data = trace_local.data
@@ -99,7 +99,6 @@ class geoscope_to_steim2(object):
 
                     #  test after mutiplication
                     if np.all((trace_local_data - trace_local_data_int) == 0):
-                        pass
                         print "After multiplication trace only contains int"
                     else:
                         print "##########################################################################################################################"
@@ -124,7 +123,7 @@ class geoscope_to_steim2(object):
                 ### save new file
 
                 # new locid and mseed.encoding
-                for trace in stream_local:                       
+                for trace in stream_local:
                     trace.stats.mseed.encoding = u'STEIM2'
                     trace.stats.location = u'00'
 
@@ -164,15 +163,16 @@ class geoscope_to_steim2(object):
         print "Dataless and data check"
 
         try:
-           dataless_parser = Dataless_Parser(self.dataless)
+            dataless_parser = Dataless_Parser(self.dataless)
         except:
-            print('Dataless file does not exist or has a problem')
+            print 'Dataless file does not exist or has a problem'
             sys.exit(0)
 
         self.check_error = False
 
         for input_file in self.file_list:
-
+            print '##########################################################################################################################'
+            print 'Check :'+str(input_file)
             stream_initiale = read(input_file)
 
             trace_local = stream_initiale[0]
@@ -183,6 +183,7 @@ class geoscope_to_steim2(object):
 
             file_dir = self.output_dir + '/' + str(starttime.year) + '/' + \
                 network + '/' + station + '/' + channel + '.D'
+                
 
             nameout = "%s/%s.%s.%s.%s.D.%04i.%03i" % (
                 file_dir, network, station, '00', channel, starttime.year, starttime.julday)
@@ -194,35 +195,45 @@ class geoscope_to_steim2(object):
             for double_trace in zip(stream_initiale, stream_modifie):
                 trace_local_init = double_trace[0]
                 type(trace_local_init)
-                s_ori = dataless_parser.get_paz(
-                    trace_local_init.id, trace_local_init.stats.starttime)['sensitivity']
-                trace_local_init.data = trace_local_init.data / s_ori
+                try:
+                    s_ori = dataless_parser.get_paz(trace_local_init.id, trace_local_init.stats.starttime)['sensitivity']
+                except:
+                    print '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
+                    print 'Error reading dataless for '
+                    print trace_local_init.id
+                    print input_file
+                    exit()
+
+                trace_local_init_data = trace_local_init.data / s_ori
 
                 trace_local_modif = double_trace[1]
 
                 try:
-                    s = dataless_parser.get_paz(
-                        trace_local_modif.id, trace_local_modif.stats.starttime)['sensitivity']
+                    s = dataless_parser.get_paz(trace_local_modif.id, trace_local_modif.stats.starttime)['sensitivity']
                 except:
-                    print "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+                    print '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
+                    print 'Error reading dataless for '
                     print trace_local_modif.id
                     print input_file
                     exit()
-                trace_local_modif.data = trace_local_modif.data / s
-                max_diff = max(trace_local_init.data - trace_local_modif.data)
-                indice_max = np.argmax(trace_local_init.data - trace_local_modif.data)
-                error_percentage = max_diff*100/trace_local_modif.data[indice_max]
-      
-                
+                trace_local_modif_data = trace_local_modif.data / s
+                max_diff = max(trace_local_init_data - trace_local_modif_data)
+                indice_max = np.argmax(trace_local_init_data - trace_local_modif_data)
+                error_percentage = max_diff*100/trace_local_modif_data[indice_max]
+                time_error_max = trace_local_init.times(type="utcdatetime")[indice_max] 
+
                 if error_percentage > self.max_percentage_error:
-                    print "##########################################################################################################################"
                     print 'Maximum difference of ' + str(max_diff) + ' in physical units for ' + input_file
-                    print "valeur initiale\t" + str(trace_local_init.data[indice_max])
-                    print "valeur finale\t" + str(trace_local_modif.data[indice_max])
-                    print "pourcentage erreur\t" + str(error_percentage)
-                
-                
+                    print "Initial value \t" + str(trace_local_init.data[indice_max])
+                    print "Final value \t" + str(trace_local_modif.data[indice_max])
+                    print "Initial value in physical unit\t" + str(trace_local_init_data[indice_max])
+                    print "Final value in physical unit \t" + str(trace_local_modif_data[indice_max])
+                    print 'Time of maximum diff : '+ str(time_error_max)
+                    print "Error percentage \t" + str(error_percentage)
                     self.check_error = True
+                else:
+                    print 'Trace Ok'
+
         if self.check_error:
             print "##########################################################################################################################"
             print "##########################################################################################################################"
@@ -239,6 +250,11 @@ class geoscope_to_steim2(object):
 
 def main():
 
+    #coefficient = 10000000
+    coefficient = 5000000/7
+    
+    
+    
     # Parametres
     formatter_class = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(
@@ -256,21 +272,25 @@ def main():
                         help='Name of the dataless or directory of dataless to\
                          use for verification', required=False)
 
-    parser.add_argument('-c','--check_dataless_only', action='store_true')
+    parser.add_argument('-p', '--error_percentage', type=float,
+                        help='percentage of error for verification', required=False, default=0.1)
+
+
+    parser.add_argument('-c', '--check_dataless_only', action='store_true')
 
 
     # parse arguments
     try:
-       args = parser.parse_args()
+        args = parser.parse_args()
     except:
         parser.print_help()
         sys.exit(0)
-    
-    converter = geoscope_to_steim2(args)
-    
+
+    converter = geoscope_to_steim2(args,coefficient)
+
     if not args.check_dataless_only:
         converter.convert_and_save()
-    
+
     converter.check_dataless()
 
     #

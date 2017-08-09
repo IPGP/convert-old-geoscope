@@ -3,7 +3,7 @@
 import argparse
 import sys
 import fnmatch
-import glob
+from glob import glob
 import os
 import logging
 import logging.handlers
@@ -33,32 +33,35 @@ class scan_encoding(object):
     def __init__(self, args):
 
         self.file_list = []
-        self.channels_coding = []
-        self.channels_coding_start_time = {}
-        self.channels_coding_end_time = {}
-
-        if os.path.isfile(args.i):
-            # One file
-            self.file_list.append(args.i)
-        elif os.path.isdir(args.i):
-            # One directory
-            for root, dirs, files in os.walk(args.i):
-                for filename in fnmatch.filter(files, '*'):
-                    #print( os.path.join(root, filename))
-                    self.file_list.append(os.path.join(root, filename))
+        self.file_streams = []
+        
+        
+        inputs = glob(args.i)
+        
+        for inp in inputs:
+            if os.path.isfile(inp):
+                # One file
+                self.file_list.append(inp)
+            elif os.path.isdir(inp):
+                # One directory
+                for root, dirs, files in os.walk(inp):
+                    for filename in fnmatch.filter(files, '*'):
+                        #print( os.path.join(root, filename))
+                        self.file_list.append(os.path.join(root, filename))
 
         if args.file:
             for input_file in self.file_list:
+                #print input_file
                 stream_local = read(input_file, headonly=True)
                 for trace_local in stream_local:
-                    tmp = trace_local.get_id() + '_' + trace_local.stats.mseed.encoding
+                    tmp = trace_local.get_id() + '\t' + trace_local.stats.mseed.encoding
                     print input_file + '\t' + tmp + '\t' + str(trace_local.stats.starttime) + '\t' + str(trace_local.stats.endtime)
         else:
             for input_file in reversed(self.file_list):
                 stream_local = read(input_file, headonly=True)
                 for trace_local in stream_local:
 
-                    tmp = trace_local.get_id() + '_' + trace_local.stats.mseed.encoding
+                    tmp = trace_local.get_id() + '\t' + trace_local.stats.mseed.encoding
 
                     # New channel + encoding
                     if tmp not in self.channels_coding:
@@ -119,7 +122,7 @@ def main():
         print parser.print_help()
         sys.exit()
 
-    converter = scan_encoding(args)
+    scan_encoding(args)
 
     logging.shutdown()
 
